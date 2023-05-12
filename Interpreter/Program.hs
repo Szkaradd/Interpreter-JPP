@@ -1,6 +1,6 @@
 module Interpreter.Program where
 
-import Interpreter.Expressions (evalExpr)
+-- import Interpreter.Expressions (evalExpr)
 import Interpreter.Statements (execStmt, execStmts, evalBlock, processItems)
 
 import Control.Monad.Except
@@ -12,19 +12,10 @@ import Szkarson.Abs
 import Types
 import Utils
 
-prepareArgs :: [Arg] -> [Value] -> IM Env
-prepareArgs [] [] = ask
-prepareArgs ((VArg _ t ident) : xs) (val : ys) = do
-  env <- initVar ident val
-  local (const env) $ prepareArgs xs ys
-prepareArgs ((RefArg _ t ident) : xs) (val : ys) = do
-  env <- initVar ident val
-  local (const env) $ prepareArgs xs ys
-
-execFunc :: Func -> IM Env
-execFunc (args, block, env) = do
-  env' <- prepareArgs args []
-  local (const env') $ evalBlock block
+-- execFunc :: Func -> IM Env
+-- execFunc (args, block, env) = do
+--   env' <- prepareArgs args []
+--   local (const env') $ evalBlock block
 
 loadTopDef :: TopDef -> IM Env
 loadTopDef (FnDef _ ident args _ block) = do
@@ -55,7 +46,23 @@ execProgr (Program _ topDefs) = do
   case Map.lookup (Ident "main") (_funcEnv env) of
     Nothing -> throwError "No main function"
     Just (_, block, _) -> do
-      local (const env) $ evalBlock block
+      (_, val) <- local (const env) $ evalBlock block
+      case val of
+        VReturn value -> do
+          liftIO $ putStrLn ("Program returned " ++ show value)
+          return env
+        VBlank -> return env
+
+-- initializeFuncEnv :: Map Ident Func
+-- initializeFuncEnv = Map.fromList
+--   [ (Ident "strlen", ([VArg NoPos VInt (Ident "str")], BBlock NoPos [Ret NoPos (EApp NoPos (Ident "strlen") [EVar NoPos (Ident "str")])], Env Map.empty Map.empty))
+--   ]
+
+-- initializeEnv :: IM Env
+-- initializeEnv = do
+--   let funcEnv = initializeFuncEnv
+--   let varEnv = Map.empty
+--   return $ Env funcEnv varEnv
 
 interpret :: Prog -> IO ()
 interpret p = do
