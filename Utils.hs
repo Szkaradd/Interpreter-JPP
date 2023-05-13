@@ -9,20 +9,11 @@ import Szkarson.Abs
 
 import Types
 
-readFromStore :: Loc -> IM Value
-readFromStore loc = do
-  store <- gets _store
-  return $ store Map.! loc
+showIdent :: Ident -> String
+showIdent (Ident str) = str
 
-readFromEnv :: Ident -> IM Loc
-readFromEnv ident = do
-  env <- asks _varEnv
-  return $ env Map.! ident
-
-readFromMem :: Ident -> IM Value
-readFromMem ident = do
-  loc <- readFromEnv ident
-  readFromStore loc
+showPos :: Pos -> String
+showPos (Just (l, c)) = "line " ++ show l ++ ", column " ++ show c
 
 invalidOperationError :: Show a => Value -> a -> Value -> Pos -> String
 invalidOperationError val1 op val2 pos =
@@ -33,7 +24,8 @@ invalidOperationError val1 op val2 pos =
     ++ " "
     ++ show val2
     ++ " at position: "
-    ++ show pos
+    ++ showPos pos
+
 
 initVar :: Ident -> Value -> IM Env
 initVar ident val = do
@@ -50,10 +42,4 @@ initVars ((ident, val) : xs) = do
   env <- initVar ident val
   local (const env) $ initVars xs
 
-assignVar :: Ident -> Value -> IM Env
-assignVar ident val = do
-  env <- ask
-  store <- get
-  let loc = _varEnv env Map.! ident
-  modify (\s -> s {_store = Map.insert loc val (_store s)})
-  return env
+

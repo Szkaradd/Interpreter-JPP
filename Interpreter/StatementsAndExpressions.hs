@@ -1,4 +1,4 @@
-module Interpreter.Statements where
+module Interpreter.StatementsAndExpressions where
 
 import Control.Monad.Except
 import Control.Monad.Reader
@@ -12,24 +12,133 @@ import Utils
 
 ---------------------- Auxiliary functions ----------------------
 
-updateEnv :: Ident -> Loc -> IM Env
-updateEnv ident addr = do
+readFromStore :: Loc -> IM Value
+readFromStore loc = do
+  store <- gets _store
+  return $ store Map.! loc
+
+readFromEnv :: Ident -> IM Loc
+readFromEnv ident = do
+  env <- asks _varEnv
+  return $ env Map.! ident
+
+readFromMem :: Ident -> IM Value
+readFromMem ident = do
+  loc <- readFromEnv ident
+  readFromStore loc
+
+assignVar :: Ident -> Value -> IM Env
+assignVar ident val = do
+  env <- ask
+  store <- get
+  let loc = _varEnv env Map.! ident
+  modify (\s -> s {_store = Map.insert loc val (_store s)})
+  return env
+
+prepareRefArg :: Ident -> Loc -> IM Env
+prepareRefArg ident addr = do
   env <- ask
   return $ env {_varEnv = Map.insert ident addr (_varEnv env)}
 
 prepareArgs :: [Arg] -> [Expr] -> Env -> IM Env
-prepareArgs [] [] _= ask
+prepareArgs [] [] _ = ask
 prepareArgs ((VArg _ t ident) : xs) (expr : ys) callEnv = do
   case expr of
     EAddr _ _ -> do
       VInt addr <- local (const callEnv) $ evalExpr expr
-      env <- updateEnv ident addr
+      env <- prepareRefArg ident addr
       local (const env) $ prepareArgs xs ys callEnv
     _ -> do
       val <- local (const callEnv) $ evalExpr expr
       env <- initVar ident val
       local (const env) $ prepareArgs xs ys callEnv
-      
+
+addFuncToEnv :: Ident -> [Arg] -> Block -> IM Env
+addFuncToEnv ident args block = do
+  env <- ask
+  let funcEnv = _funcEnv env
+  let funcEnv' = Map.insert ident (args, block, env {_funcEnv = funcEnv'}) funcEnv
+  return $ env {_funcEnv = funcEnv'}
+
+---------------------- Built-in functions ----------------------
+
+strCharAt :: Pos -> Ident -> [Expr] -> IM Value
+strCharAt pos ident expr = do
+  VString str <- readFromMem ident
+  VInt index <- evalExpr $ head expr
+  let index' = fromIntegral index
+  when
+    (index' < 0 || index' >= length str)
+    (throwError $ "Index " ++ show index' ++ " out of bounds at position: " ++ showPos pos)
+  return $ VString [str !! index']
+
+strLength :: Pos -> Ident -> IM Value
+strLength pos ident = do
+  VString str <- readFromMem ident
+  return $ VInt (fromIntegral $ length str)
+
+strSubstr :: Pos -> Ident -> [Expr] -> IM Value
+strSubstr pos ident exprs = do
+  VString str <- readFromMem ident
+  VInt index1 <- evalExpr $ head exprs
+  VInt index2 <- evalExpr $ head $ tail exprs
+  let index1' = fromIntegral index1
+  let index2' = fromIntegral index2
+  when
+    (index1' < 0 || index1' >= length str)
+    (throwError $ "Index " ++ show index1' ++ " out of bounds at position: " ++ showPos pos)
+  when
+    (index2' < 0 || index2' >= length str)
+    (throwError $ "Index " ++ show index2' ++ " out of bounds at position: " ++ showPos pos)
+  return $ VString (take (index2' - index1') (drop index1' str))
+
+strAppend :: Pos -> Ident -> [Expr] -> IM Value
+strAppend pos ident exprs = do
+  VString str <- readFromMem ident
+  VString str' <- evalExpr $ head exprs
+  return $ VString (str ++ str')
+
+strReverse :: Pos -> Ident -> IM Value
+strReverse pos ident = do
+  VString str <- readFromMem ident
+  return $ VString (reverse str)
+
+strSetCharAt :: Pos -> Ident -> [Expr] -> IM Value
+strSetCharAt pos ident exprs = do
+  loc <- readFromEnv ident
+  store <- get
+  VString str <- readFromMem ident
+  VInt index <- evalExpr $ head exprs
+  VString char <- evalExpr $ head $ tail exprs
+  let index' = fromIntegral index
+  let char_len = length char
+  when
+    (index' < 0 || index' >= length str)
+    (throwError $ "Index " ++ show index' ++ " out of bounds at position: " ++ showPos pos)
+  when
+    (char_len /= 1)
+    (throwError $ "String " ++ show char ++ " is not a character at position: " ++ showPos pos)
+  let str' = take index' str ++ char ++ drop (index' + 1) str
+  modify $ \store -> store {_store = Map.insert loc (VString str') (_store store)}
+  return $ VBool True
+
+execBuildInFunc :: Pos -> Ident -> Ident -> [Expr] -> IM Value
+execBuildInFunc pos varIdent funIdent exprs = do
+  case funIdent of
+    Ident "charAt" -> do
+      strCharAt pos varIdent exprs
+    Ident "length" -> do
+      strLength pos varIdent
+    Ident "substr" -> do
+      strSubstr pos varIdent exprs
+    Ident "append" -> do
+      strAppend pos varIdent exprs
+    Ident "reverse" -> do
+      strReverse pos varIdent
+    Ident "setCharAt" -> do
+      strSetCharAt pos varIdent exprs
+    _ -> throwError $ "Function " ++ show funIdent ++ " not defined"
+
 ---------------------- Expressions ----------------------
 
 evalExpr :: Expr -> IM Value
@@ -47,11 +156,13 @@ evalExpr (EApp _ ident exprs) = do
     Just (args, block, env) -> do
       callEnv <- ask
       env' <- local (const env) $ prepareArgs args exprs callEnv
+      env' <- local (const env') $ addFuncToEnv ident args block
       (env'', retVal) <- local (const env') $ evalBlock block
       case retVal of
         VReturn val -> return val
         VBlank -> return VVoid
-
+evalExpr (EBuildInFun pos varIdent funIdent exprs) = do
+  execBuildInFunc pos varIdent funIdent exprs
 evalExpr (EString _ str) = return $ VString str
 evalExpr (Neg _ expr) = do
   VInt val <- evalExpr expr
@@ -67,12 +178,12 @@ evalExpr (EMul pos expr1 mulop expr2) = do
     Div _ -> do
       when
         (val2 == 0)
-        (throwError $ "Division by 0 at position: " ++ show pos)
+        (throwError $ "Division by 0 at position: " ++ showPos pos)
       return $ VInt $ val1 `div` val2
     Mod _ -> do
       when
         (val2 == 0)
-        (throwError $ "Modulo by 0 at position: " ++ show pos)
+        (throwError $ "Modulo by 0 at position: " ++ showPos pos)
       return $ VInt $ val1 `mod` val2
 evalExpr (EAdd pos expr1 addop expr2) = do
   VInt val1 <- evalExpr expr1
@@ -109,8 +220,20 @@ evalExpr (EOr _ expr1 expr2) = do
   VBool val2 <- evalExpr expr2
   return $ VBool (val1 || val2)
 
+evalExprs :: [Expr] -> IM [Value]
+evalExprs [] = return []
+evalExprs (x : xs) = do
+  val <- evalExpr x
+  vals <- evalExprs xs
+  return (val : vals)
 
 ---------------------- Statements ----------------------
+
+printVals :: [Value] -> IM ()
+printVals [] = liftIO $ putStr "\n"
+printVals (x : xs) = do
+  liftIO $ putStr $ show x
+  printVals xs
 
 processItem :: Type -> Item -> IM (Ident, Value)
 processItem t (NoInit _ ident) = return (ident, defaultValue t)
@@ -143,7 +266,6 @@ execElifs (x : xs) = do
   (env, val, bool) <- execElif x
   if bool then return (env, val, bool) else execElifs xs
 
-
 evalDecl :: Decl -> IM (Env, StmtReturnValue)
 evalDecl (DDecl _ t items) = do
   vals <- processItems t items
@@ -152,14 +274,11 @@ evalDecl (DDecl _ t items) = do
 evalDecl (FnDecl _ ident args retType block) = do
   env <- ask
   let funcEnv = _funcEnv env
-  let funcEnv' = Map.insert ident (args, block, env {_funcEnv = funcEnv'}) funcEnv
+  let funcEnv' = Map.insert ident (args, block, env) funcEnv
   return (env {_funcEnv = funcEnv'}, VBlank)
 
 evalBlock :: Block -> IM (Env, StmtReturnValue)
-evalBlock (BBlock _ stmts) = do
-  env <- ask
-  (env', val) <- local (const env) $ execStmts stmts
-  return (env', val)
+evalBlock (BBlock _ stmts) = execStmts stmts
 
 execStmts :: [Stmt] -> IM (Env, StmtReturnValue)
 execStmts [] = do
@@ -175,41 +294,42 @@ execStmt :: Stmt -> IM (Env, StmtReturnValue)
 execStmt (Empty _) = do
   env <- ask
   return (env, VBlank)
-
 execStmt (BStmt _ block) = evalBlock block
-
 execStmt (DStmt _ decl) = evalDecl decl
-
 execStmt (Ass _ ident expr) = do
   val <- evalExpr expr
   env <- assignVar ident val
   return (env, VBlank)
-
 execStmt (Incr _ ident) = do
   val <- readFromMem ident
   val' <- case val of
     VInt v -> return $ VInt (v + 1)
   env <- assignVar ident val'
   return (env, VBlank)
-
 execStmt (Decr _ ident) = do
   val <- readFromMem ident
   val' <- case val of
     VInt v -> return $ VInt (v - 1)
   env <- assignVar ident val'
   return (env, VBlank)
-
-execStmt (Print _ expr) = do
-  val <- evalExpr expr
-  liftIO $ print val
+execStmt (Print _ exprs) = do
   env <- ask
+  vals <- evalExprs exprs
+  printVals vals
   return (env, VBlank)
-
+execStmt (Assert pos expr) = do
+  val <- evalExpr expr
+  env <- ask
+  case val of
+    VBool True -> return (env, VBlank)
+    VBool False -> throwError $ "Assertion failed at position: " ++ showPos pos
 execStmt (Ret _ expr) = do
   val <- evalExpr expr
   env <- ask
   return (env, VReturn val)
-
+execStmt (VRet _) = do
+  env <- ask
+  return (env, VReturn VVoid)
 execStmt (SIf _ expr block elifs) = do
   val <- evalExpr expr
   case val of
@@ -221,17 +341,16 @@ execStmt (SIf _ expr block elifs) = do
       (x : xs) -> do
         (env, val', bool) <- execElifs elifs
         return (env, val')
-
 execStmt (SIfElse _ expr block elifs elseBlock) = do
   env <- ask
   val <- evalExpr expr
   case val of
     VBool True -> evalBlock block
     VBool False -> do
-      (env', val',bool) <- execElifs elifs
-      if bool then return (env', val') else
-        evalBlock elseBlock
-
+      (env', val', bool) <- execElifs elifs
+      if bool
+        then return (env', val')
+        else evalBlock elseBlock
 execStmt (While pos expr block) = do
   env <- ask
   val <- evalExpr expr
@@ -242,7 +361,6 @@ execStmt (While pos expr block) = do
         VReturn v -> return (env', VReturn v)
         VBlank -> local (const env) $ execStmt (While pos expr block)
     VBool False -> return (env, VBlank)
-
 execStmt (SExp _ expr) = do
   val <- evalExpr expr
   env <- ask
