@@ -5,5 +5,4 @@ fn main () -> int {
     print(s2);
     print(s1.length());
     print(s1.charAt(0));
-    //return 0;
 }

@@ -13,7 +13,7 @@ runProgram s =
   let tokens = myLexer s
    in case pProg tokens of
         Left err -> do
-          hPutStrLn stderr "Parse Failed..."
+          hPutStrLn stderr "Parse Failed:"
           hPutStrLn stderr err
           exitFailure
         Right tree -> do
@@ -23,12 +23,12 @@ runProgram s =
               interpretResult <- interpret tree
               case interpretResult of
                 Left err -> do
-                  hPutStrLn stderr "Interpretation Error..."
+                  hPutStrLn stderr "Interpretation Error:"
                   hPutStrLn stderr err
                   exitFailure
                 Right _ -> return ()
             err -> do
-              hPutStrLn stderr "Typecheck Failed..."
+              hPutStrLn stderr "Typecheck Failed:"
               hPutStrLn stderr err
               exitFailure
 
