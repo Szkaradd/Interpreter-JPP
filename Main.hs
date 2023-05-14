@@ -10,8 +10,8 @@ import Szkarson.Print (Print, printTree)
 
 runProgram :: String -> IO ()
 runProgram s =
-  let ts = myLexer s
-   in case pProg ts of
+  let tokens = myLexer s
+   in case pProg tokens of
         Left err -> do
           hPutStrLn stderr "Parse Failed..."
           hPutStrLn stderr err
@@ -37,9 +37,15 @@ main = do
   args <- getArgs
   case args of
     [fileName] -> interpretFromFile fileName
-    _ -> putStrLn "Error: Please provide exactly one file name as an argument."
+    [] -> interpretFromStdin
+    _ -> hPutStrLn stderr "Error: too many arguments, expected 0 or 1"
 
 interpretFromFile :: FilePath -> IO ()
 interpretFromFile fileName = do
   content <- readFile fileName
+  runProgram content
+
+interpretFromStdin :: IO ()
+interpretFromStdin = do
+  content <- getContents
   runProgram content

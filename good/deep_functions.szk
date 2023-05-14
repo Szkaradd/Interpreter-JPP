@@ -1,0 +1,13 @@
+fn funkcja1(int x) -> int {
+  x = x + 10;
+  fn funkcja2(int x) -> int {
+      return x + 5;
+  }
+  int res = funkcja2(x);
+  // res = initial value of x + 15
+  return res + 1;
+  // returned value is initial value of x + 16
+}
+
+int res = funkcja1(1);
+// res = 17

@@ -1,0 +1,29 @@
+fn main () -> int {
+    int x = 5, y = 2;
+    string s = "hello";
+    bool b = true;
+    print(x == x);
+    // true
+    print(b == false);
+    // false
+    print(b == true);
+    // true
+    print(b != true);
+    // false
+    print(x > 0);
+    // true
+    print(x < 0);
+    // false
+    print(x + y >= 7);
+    // true
+    print(x + y <= 7);
+    // true
+    print(s == s);
+    // true
+    print(s != s);
+    // false
+    print(x + y);
+    // 7
+    print(-x);
+    // -5
+}

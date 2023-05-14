@@ -1,0 +1,24 @@
+global int g = 5;
+fn main () -> int {
+    int x = 5;
+    int y = 6;
+    int z = x + y;
+    print(z);
+    // 11
+    x = y;
+    print(x);
+    // 6
+
+    string s = "hello";
+    s = s.append(" world!");
+    print(s);
+    // hello world!
+    bool b = (x == y && x != z && z == 11);
+    print(b);
+    // true
+    print(g);
+    // 5
+    int j = g + 1;
+    print(j);
+    // 6
+}

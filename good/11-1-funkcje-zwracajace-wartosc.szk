@@ -1,0 +1,18 @@
+fn example_ret_string() -> string {
+    return "hello";
+}
+
+fn example_ret_int() -> int {
+    return 1;
+}
+
+fn example_ret_bool() -> bool {
+    return true;
+}
+
+fn main() -> int {
+    int a = example_ret_int();
+    string b = example_ret_string();
+    bool c = example_ret_bool();
+    print(a, " ", b, " ", c);
+}

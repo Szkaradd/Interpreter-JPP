@@ -6,7 +6,6 @@ import Control.Monad.State
 import Data.Map (Map)
 import Data.Map qualified as Map
 import Szkarson.Abs
-
 import Types
 
 showIdent :: Ident -> String
@@ -26,7 +25,6 @@ invalidOperationError val1 op val2 pos =
     ++ " at position: "
     ++ showPos pos
 
-
 initVar :: Ident -> Value -> IM Env
 initVar ident val = do
   env <- ask
@@ -41,5 +39,3 @@ initVars [] = ask
 initVars ((ident, val) : xs) = do
   env <- initVar ident val
   local (const env) $ initVars xs
-
-

@@ -15,7 +15,7 @@ type Pos = BNFC'Position
 
 ---------------------- Interpreter types ----------------------
 
-data StmtReturnValue = VReturn Value | VBlank
+data ReturnValue = VReturn Value | VBlank
   deriving (Show, Eq)
 
 data Value
@@ -40,12 +40,12 @@ defaultValue (TInt _) = VInt 0
 defaultValue (TBool _) = VBool False
 defaultValue (TStr _) = VString ""
 
-type Func = ([Arg], Block, Env)
+type Func = ([Arg], Block, Env, Type)
 
 data Env = Env
   { _varEnv :: Map Ident Loc,
     _funcEnv :: Map Ident Func
-  } deriving (Show)
+  }
 
 data Store = Store
   { _store :: Map Loc Value,
@@ -56,7 +56,7 @@ type IM a = ExceptT String (StateT Store (ReaderT Env IO)) a
 
 ---------------------- Typechecker types ----------------------
 
-data TType = IntT | BoolT | StrT | VoidT | RefT TType | FuncT [TType] TType
+data TType = IntT | BoolT | StrT | VoidT | RefT TType
   deriving Eq
 
 instance Show TType where
@@ -68,7 +68,8 @@ instance Show TType where
 
 data TypeEnv = TypeEnv
   { _typeEnv :: Map Ident TType,
-    _typeFuncEnv :: Map Ident ([Arg], TType)
+    _typeFuncEnv :: Map Ident ([Arg], TType),
+    _in_func :: TType 
   }
 
 type TM a = ExceptT String (ReaderT TypeEnv IO) a

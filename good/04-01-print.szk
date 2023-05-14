@@ -1,0 +1,6 @@
+fn main() -> int {
+    int x; // default value of int is 0
+    string s = "hello";
+    print(s, " ", x);
+    print("Hello!");
+}

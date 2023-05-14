@@ -1,0 +1,17 @@
+fn fun1(int a, int b) -> int {
+    fn fun2 (int a, int b) -> int {
+        return a - b;
+    }
+    return fun2(a, b);
+}
+
+fn fun2(int a, int b) -> int {
+    return a - b;
+}
+
+fn main() -> int {
+    int res = fun2(1, 2);
+    int res2 = fun1(1, 2);
+    print("Hello, world!");
+    return 0;
+} 

@@ -1,0 +1,21 @@
+global int x = 5;
+
+fn example(int x) -> void {
+    print(x);
+}
+
+fn example2() -> void {
+    print(x);
+}
+
+fn main () -> int {
+    print(x);
+    // should print 5
+    string x = "str";
+    example(10);
+    // should print 10
+    example2();
+    // should print 5
+    print(x);
+    // should print str
+}

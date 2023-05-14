@@ -1,0 +1,9 @@
+fn main () -> int {
+    string s1 = "abcde";
+    string s2 = s1.charAt(2);
+    print(s1);
+    print(s2);
+    print(s1.length());
+    print(s1.charAt(0));
+    //return 0;
+}

@@ -1,0 +1,15 @@
+fn main() -> int {
+    int i = 0;
+    while (i < 5) {
+        i++;
+        if (i == 3) {
+            print("i = ", i);
+        }
+        elif (i < 3) {
+            print("i < 3");
+        }
+        else {
+            print("i > 3");
+        }
+    }
+}

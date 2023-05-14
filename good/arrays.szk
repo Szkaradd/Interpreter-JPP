@@ -1,0 +1,21 @@
+fn main() -> int {
+    int x = 10;
+    int y = 5;
+    int i = 0;
+    int [][]arr1;
+    while (i < x) {
+        int j = 0;
+        while (j < y) {
+            arr1[i][j] = 5;
+            j++;
+        }
+        i++;
+    }
+    // creates 10 x 5 matrix filled with fives.
+    int len1 = arr1.len(1);
+    // len1 = 10
+    int len2 = arr1.len(2);
+    // len2 = 5
+    int dimensions = arr1.dims;
+    // dimensions = 2
+}

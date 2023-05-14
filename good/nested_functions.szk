@@ -1,0 +1,10 @@
+fn fun1() -> int {
+    print("Hello from fun1!");
+    fn fun2() -> int {
+        print("Hello from fun2!");
+        return 2;
+    }
+    int x = fun2();
+    print(x);
+    return 1 + x;
+}

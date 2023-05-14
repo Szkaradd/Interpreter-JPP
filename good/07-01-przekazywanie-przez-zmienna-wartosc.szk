@@ -1,0 +1,16 @@
+fn funkcja1(int arg) -> void {
+    arg++;
+}
+
+fn main() -> int {
+    int x = 5;
+    funkcja1(&x);
+    print(x);
+	// x = 6
+    funkcja1(x);
+    print(x);
+    // x = 6
+    funkcja1(&x);
+    print(x);
+    // x = 7
+} 

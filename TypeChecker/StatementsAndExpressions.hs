@@ -8,6 +8,52 @@ import Szkarson.Abs
 import Types
 import Utils
 
+---------------------- Auxiliary functions ----------------------
+
+showRelOp :: RelOp -> String
+showRelOp (LTH _) = "<"
+showRelOp (LE _) = "<="
+showRelOp (GTH _) = ">"
+showRelOp (GE _) = ">="
+showRelOp (EQU _) = "=="
+showRelOp (NE _) = "!="
+
+errorAtPos :: Pos -> String
+errorAtPos pos = "Error at: " ++ showPos pos ++ "\n"
+
+getType :: Pos -> Ident -> TM TType
+getType pos ident = do
+  typeEnv <- ask
+  case Map.lookup ident (_typeEnv typeEnv) of
+    Just t -> return t
+    Nothing -> throwError $ errorAtPos pos ++ "Variable " ++ showIdent ident ++ " not in scope"
+
+toTType :: Type -> TType
+toTType (TInt _) = IntT
+toTType (TBool _) = BoolT
+toTType (TStr _) = StrT
+toTType (TVoid _) = VoidT
+
+checkIfArgTypeMatches :: TType -> TType -> Bool
+checkIfArgTypeMatches (RefT t1) (RefT t2) = t1 == t2
+checkIfArgTypeMatches (RefT t1) t2 = t1 == t2
+checkIfArgTypeMatches t1 (RefT t2) = t1 == t2
+checkIfArgTypeMatches t1 t2 = t1 == t2
+
+checkIfArgTypesMatch :: [TType] -> [TType] -> Bool
+checkIfArgTypesMatch [] [] = True
+checkIfArgTypesMatch (x : xs) (y : ys) = checkIfArgTypeMatches x y && checkIfArgTypesMatch xs ys
+checkIfArgTypesMatch _ _ = False
+
+getArgType :: Arg -> TType
+getArgType (VArg _ varType ident) = toTType varType
+
+getArgTypes :: [Arg] -> [TType]
+getArgTypes = map getArgType
+
+getArgIdent :: Arg -> Ident
+getArgIdent (VArg _ _ ident) = ident
+
 ---------------------- Check Built-in functions ----------------------
 
 checkIfVarIsString :: Pos -> Ident -> TType -> TM TType
@@ -65,46 +111,14 @@ checkBuiltInFunction pos varIdent funcIdent exprs = do
           case exprVar2 of
             StrT -> do
               checkIfVarIsString pos varIdent VoidT
-            _ -> throwError $ errorAtPos pos ++ "Function " ++ show funcIdent ++ " expects string as second argument"
+            _ ->
+              throwError $
+                errorAtPos pos
+                  ++ "Function "
+                  ++ show funcIdent
+                  ++ " expects string as second argument"
         _ -> throwError $ errorAtPos pos ++ "Function " ++ show funcIdent ++ " expects int as first argument"
     _ -> throwError $ errorAtPos pos ++ "Function " ++ show funcIdent ++ " is not a built-in function"
-
----------------------- Auxiliary functions ----------------------
-
-showRelOp :: RelOp -> String
-showRelOp (LTH _) = "<"
-showRelOp (LE _) = "<="
-showRelOp (GTH _) = ">"
-showRelOp (GE _) = ">="
-showRelOp (EQU _) = "=="
-showRelOp (NE _) = "!="
-
-errorAtPos :: Pos -> String
-errorAtPos pos = "Error at position: " ++ showPos pos ++ "\n"
-
-getType :: Pos -> Ident -> TM TType
-getType pos ident = do
-  typeEnv <- ask
-  case Map.lookup ident (_typeEnv typeEnv) of
-    Just t -> return t
-    Nothing -> throwError $ errorAtPos pos ++ "Variable " ++ showIdent ident ++ " not in scope"
-
-toTType :: Type -> TType
-toTType (TInt _) = IntT
-toTType (TBool _) = BoolT
-toTType (TStr _) = StrT
-toTType (TVoid _) = VoidT
-
-checkIfArgTypeMatches :: TType -> TType -> Bool
-checkIfArgTypeMatches (RefT t1) (RefT t2) = t1 == t2
-checkIfArgTypeMatches (RefT t1) t2 = t1 == t2
-checkIfArgTypeMatches t1 (RefT t2) = t1 == t2
-checkIfArgTypeMatches t1 t2 = t1 == t2
-
-checkIfArgTypesMatch :: [TType] -> [TType] -> Bool
-checkIfArgTypesMatch [] [] = True
-checkIfArgTypesMatch (x : xs) (y : ys) = checkIfArgTypeMatches x y && checkIfArgTypesMatch xs ys
-checkIfArgTypesMatch _ _ = False
 
 ---------------------- Check expressions ----------------------
 
@@ -123,6 +137,7 @@ checkExpr (ELitInt pos _) = return IntT
 checkExpr (ELitTrue pos) = return BoolT
 checkExpr (ELitFalse pos) = return BoolT
 checkExpr (EApp pos ident exprs) = do
+  when (ident == Ident "main") $ throwError $ errorAtPos pos ++ "Function main cannot be called"
   env <- ask
   case Map.lookup ident (_typeFuncEnv env) of
     Nothing -> throwError $ errorAtPos pos ++ "Function " ++ showIdent ident ++ " not in scope"
@@ -148,13 +163,25 @@ checkExpr (EMul pos expr1 _ expr2) = do
   expr2Type <- checkExpr expr2
   if expr1Type == IntT && expr2Type == IntT
     then return IntT
-    else throwError $ errorAtPos pos ++ "Cannot perform mul, div or mod operation on " ++ show expr1Type ++ " and " ++ show expr2Type
+    else
+      throwError $
+        errorAtPos pos
+          ++ "Cannot perform mul, div or mod operation on "
+          ++ show expr1Type
+          ++ " and "
+          ++ show expr2Type
 checkExpr (EAdd pos expr1 _ expr2) = do
   expr1Type <- checkExpr expr1
   expr2Type <- checkExpr expr2
   if expr1Type == IntT && expr2Type == IntT
     then return IntT
-    else throwError $ errorAtPos pos ++ "Cannot perform add or sub operation on " ++ show expr1Type ++ " and " ++ show expr2Type
+    else
+      throwError $
+        errorAtPos pos
+          ++ "Cannot perform add or sub operation on "
+          ++ show expr1Type
+          ++ " and "
+          ++ show expr2Type
 checkExpr (ERel pos expr1 op expr2) = do
   expr1Type <- checkExpr expr1
   expr2Type <- checkExpr expr2
@@ -162,15 +189,35 @@ checkExpr (ERel pos expr1 op expr2) = do
     (EQU pos') ->
       if expr1Type == expr2Type
         then return BoolT
-        else throwError $ errorAtPos pos' ++ "Cannot compare " ++ show expr1Type ++ " with " ++ show expr2Type
+        else
+          throwError $
+            errorAtPos pos'
+              ++ "Cannot compare value of type "
+              ++ show expr1Type
+              ++ " with value of type "
+              ++ show expr2Type
     (NE pos') ->
       if expr1Type == expr2Type
         then return BoolT
-        else throwError $ errorAtPos pos' ++ "Cannot compare " ++ show expr1Type ++ " with " ++ show expr2Type
+        else
+          throwError $
+            errorAtPos pos'
+              ++ "Cannot compare value of type "
+              ++ show expr1Type
+              ++ " with value of type "
+              ++ show expr2Type
     _ -> do
       if expr1Type == IntT && expr2Type == IntT
         then return BoolT
-        else throwError $ errorAtPos pos ++ "Only integers can be compared by " ++ showRelOp op
+        else
+          throwError $
+            errorAtPos pos
+              ++ "Cannot compare "
+              ++ show expr1Type
+              ++ " and "
+              ++ show expr2Type
+              ++ " by operator "
+              ++ showRelOp op
 checkExpr (EAnd pos expr1 expr2) = do
   expr1Type <- checkExpr expr1
   expr2Type <- checkExpr expr2
@@ -193,7 +240,7 @@ checkExprs (x : xs) = do
 
 ---------------------- Check statements ----------------------
 
-data StmtType = ReturnT TType | BlankT
+-- data StmtType = ReturnT TType | BlankT
 
 initType :: Ident -> TType -> TM TypeEnv
 initType ident val = do
@@ -222,15 +269,6 @@ processItems varType (x : xs) = do
   vals <- processItems varType xs
   return (val : vals)
 
-getArgType :: Arg -> TType
-getArgType (VArg _ varType ident) = toTType varType
-
-getArgTypes :: [Arg] -> [TType]
-getArgTypes = map getArgType
-
-getArgIdent :: Arg -> Ident
-getArgIdent (VArg _ _ ident) = ident
-
 prepareArgs :: [Arg] -> TM TypeEnv
 prepareArgs [] = ask
 prepareArgs (arg : args) = do
@@ -239,36 +277,33 @@ prepareArgs (arg : args) = do
   let env' = env {_typeEnv = Map.insert (getArgIdent arg) argType (_typeEnv env)}
   local (const env') $ prepareArgs args
 
-checkDecl :: Decl -> TM (TypeEnv, StmtType)
+checkDecl :: Decl -> TM TypeEnv
 checkDecl (DDecl pos varType items) = do
   env <- ask
   vals <- processItems varType items
-  env' <- initTypes vals
-  return (env', BlankT)
+  initTypes vals
 checkDecl (FnDecl pos ident args retType block) = do
+  when (ident == Ident "main") $ throwError $ errorAtPos pos ++ "Cannot declare function main inside another function"
   env <- ask
   let funcTypeEnv = _typeFuncEnv env
   let funcTypeEnv' = Map.insert ident (args, toTType retType) funcTypeEnv
   let typeEnv = _typeEnv env
   let env' = env {_typeFuncEnv = funcTypeEnv'}
   env'' <- local (const env') $ prepareArgs args
+  let env''' = env'' {_in_func = toTType retType}
   local (const env'') $ checkBlock block
-  return (env', BlankT)
+  return env'
 
-checkStmts :: [Stmt] -> TM (TypeEnv, StmtType)
-checkStmts [] = do
-  env <- ask
-  return (env, BlankT)
+checkStmts :: [Stmt] -> TM TypeEnv
+checkStmts [] = ask
 checkStmts (stmt : stmts) = do
-  (env, stmtType) <- checkStmt stmt
-  case stmtType of
-    (ReturnT _) -> return (env, stmtType)
-    BlankT -> local (const env) $ checkStmts stmts
+  env <- checkStmt stmt
+  local (const env) $ checkStmts stmts
 
-checkBlock :: Block -> TM (TypeEnv, StmtType)
+checkBlock :: Block -> TM TypeEnv
 checkBlock (BBlock _ stmts) = checkStmts stmts
 
-checkAssign :: Pos -> Ident -> Expr -> TM (TypeEnv, StmtType)
+checkAssign :: Pos -> Ident -> Expr -> TM TypeEnv
 checkAssign pos ident expr = do
   exprType <- checkExpr expr
   env <- ask
@@ -276,107 +311,93 @@ checkAssign pos ident expr = do
     Nothing -> throwError $ errorAtPos pos ++ "Variable " ++ showIdent ident ++ " not in scope"
     Just varType -> do
       if varType == exprType
-        then return (env, BlankT)
+        then return env
         else throwError $ errorAtPos pos ++ "Cannot assign " ++ show exprType ++ " to " ++ show varType
 
-checkIncrDecr :: Pos -> Ident -> TM (TypeEnv, StmtType)
+checkIncrDecr :: Pos -> Ident -> TM TypeEnv
 checkIncrDecr pos ident = do
   env <- ask
   case Map.lookup ident (_typeEnv env) of
     Nothing -> throwError $ errorAtPos pos ++ "Variable " ++ showIdent ident ++ " not in scope"
     Just varType ->
       if varType == IntT
-        then return (env, BlankT)
+        then return env
         else throwError $ errorAtPos pos ++ "Only integers can be decremented or incremented"
 
-checkPrint :: Pos -> [Expr] -> TM (TypeEnv, StmtType)
+checkPrint :: Pos -> [Expr] -> TM TypeEnv
 checkPrint pos exprs = do
   env <- ask
   checkExprs exprs
-  return (env, BlankT)
+  return env
 
-checkAssert :: Pos -> Expr -> TM (TypeEnv, StmtType)
+checkAssert :: Pos -> Expr -> TM TypeEnv
 checkAssert pos expr = do
   env <- ask
   exprType <- checkExpr expr
   if exprType == BoolT
-    then return (env, BlankT)
+    then return env
     else throwError $ errorAtPos pos ++ "Only booleans can be asserted"
 
-checkElif :: Pos -> ElseIf -> TM (TypeEnv, StmtType)
+checkElif :: Pos -> ElseIf -> TM TypeEnv
 checkElif pos (ElIf pos' expr block) = checkIf pos' expr block []
 
-checkElifs :: Pos -> [ElseIf] -> TM (TypeEnv, StmtType)
-checkElifs pos [] = do
-  env <- ask
-  return (env, BlankT)
+checkElifs :: Pos -> [ElseIf] -> TM TypeEnv
+checkElifs pos [] = ask
 checkElifs pos (x : xs) = do
   env <- ask
-  (env', stmtType) <- checkElif pos x
-  case stmtType of
-    (ReturnT _) -> do
-      checkElifs pos xs
-      return (env, stmtType)
-    BlankT -> checkElifs pos xs
+  env' <- checkElif pos x
+  checkElifs pos xs
 
-checkIf :: Pos -> Expr -> Block -> [ElseIf] -> TM (TypeEnv, StmtType)
+checkIf :: Pos -> Expr -> Block -> [ElseIf] -> TM TypeEnv
 checkIf pos expr block elifs = do
   env <- ask
   exprType <- checkExpr expr
   if exprType == BoolT
     then do
-      (env', stmtType1) <- checkBlock block
-      (env', stmtType2) <- checkElifs pos elifs
-      case stmtType1 of
-        (ReturnT _) -> return (env, stmtType1)
-        BlankT -> case stmtType2 of
-          (ReturnT _) -> return (env, stmtType2)
-          BlankT -> return (env, BlankT)
+      checkBlock block
+      checkElifs pos elifs
+      return env
     else throwError $ errorAtPos pos ++ "Only booleans can be used as a condition in if statements"
 
-checkIfElse :: Pos -> Expr -> Block -> Block -> [ElseIf] -> TM (TypeEnv, StmtType)
+checkIfElse :: Pos -> Expr -> Block -> Block -> [ElseIf] -> TM TypeEnv
 checkIfElse pos expr block1 block2 elifs = do
   env <- ask
   exprType <- checkExpr expr
   if exprType == BoolT
     then do
-      (env', stmtType1) <- checkBlock block1
-      (env', stmtType2) <- checkBlock block2
-      (env', stmtType3) <- checkElifs pos elifs
-      case stmtType1 of
-        (ReturnT _) -> return (env, stmtType1)
-        BlankT -> case stmtType2 of
-          (ReturnT _) -> return (env, stmtType2)
-          BlankT -> return (env, BlankT)
+      checkBlock block1
+      checkBlock block2
+      checkElifs pos elifs
+      return env
     else throwError $ errorAtPos pos ++ "Only booleans can be used as a condition in if statements"
 
-checkWhile :: Pos -> Expr -> Block -> TM (TypeEnv, StmtType)
+checkWhile :: Pos -> Expr -> Block -> TM TypeEnv
 checkWhile pos expr block = do
   env <- ask
   exprType <- checkExpr expr
   if exprType == BoolT
     then do
-      (env', stmtType) <- checkBlock block
-      case stmtType of
-        (ReturnT _) -> return (env, stmtType)
-        BlankT -> return (env, BlankT)
+      checkBlock block
+      return env
     else throwError $ errorAtPos pos ++ "Only booleans can be used as a condition in while statements"
 
-checkReturn :: Pos -> Expr -> TM (TypeEnv, StmtType)
+checkReturn :: Pos -> Expr -> TM TypeEnv
 checkReturn pos expr = do
   env <- ask
   exprType <- checkExpr expr
-  return (env, ReturnT exprType)
+  if exprType == _in_func env
+    then return env
+    else throwError $ errorAtPos pos ++ "Cannot return " ++ show exprType ++ " from function with return type " ++ show (_in_func env)
 
-checkVoidReturn :: Pos -> TM (TypeEnv, StmtType)
+checkVoidReturn :: Pos -> TM TypeEnv
 checkVoidReturn pos = do
   env <- ask
-  return (env, ReturnT VoidT)
+  if _in_func env == VoidT
+    then return env
+    else throwError $ errorAtPos pos ++ "Cannot return void from function with return type " ++ show (_in_func env)
 
-checkStmt :: Stmt -> TM (TypeEnv, StmtType)
-checkStmt (Empty _) = do
-  env <- ask
-  return (env, BlankT)
+checkStmt :: Stmt -> TM TypeEnv
+checkStmt (Empty _) = ask
 checkStmt (BStmt _ block) = checkBlock block
 checkStmt (DStmt _ decl) = checkDecl decl
 checkStmt (Ass pos ident expr) = checkAssign pos ident expr
@@ -391,5 +412,4 @@ checkStmt (Ret pos expr) = checkReturn pos expr
 checkStmt (VRet pos) = checkVoidReturn pos
 checkStmt (SExp pos expr) = do
   checkExpr expr
-  env <- ask
-  return (env, BlankT)
+  ask

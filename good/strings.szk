@@ -1,0 +1,27 @@
+fn print_chars(string str) -> void {
+    int i = 0;
+    while (i < str.length()) {
+        print(str.charAt(i));
+        i++;
+    }
+}
+
+fn main() -> int {
+	string str = "abcde";
+    print_chars(str);
+    string b = str.charAt(1);
+    print(b);
+    // b = "b"
+    string rev = str.reverse();
+    print (rev);
+    // rev = "edcba"
+    str = str.append("abcde");
+    print(str);
+    // str = "abcdeabcde"
+	string substr = str.substr(0,5);
+    print(substr);
+    // substr = "abcde"
+    substr.setCharAt(0, "z");
+    print(substr);
+    // substr = "zbcde"
+}

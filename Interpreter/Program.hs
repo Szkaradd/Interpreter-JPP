@@ -11,10 +11,10 @@ import Types
 import Utils
 
 loadTopDef :: TopDef -> IM Env
-loadTopDef (FnDef _ ident args _ block) = do
+loadTopDef (FnDef _ ident args retType block) = do
   env <- ask
   let funcEnv = _funcEnv env
-  let funcEnv' = Map.insert ident (args, block, env) funcEnv
+  let funcEnv' = Map.insert ident (args, block, env, retType) funcEnv
   return $ env {_funcEnv = funcEnv'}
 loadTopDef (GlobDecl _ t items) = do
   vals <- processItems t items
@@ -32,7 +32,7 @@ execProgram (Program _ topDefs) = do
   store <- get
   case Map.lookup (Ident "main") (_funcEnv env) of
     Nothing -> throwError "No main function"
-    Just (_, block, _) -> do
+    Just (_, block, _, retType) -> do
       (_, val) <- local (const env) $ evalBlock block
       case val of
         VReturn value -> do

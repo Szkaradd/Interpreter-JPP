@@ -1,0 +1,40 @@
+fn while_test () -> void {
+    int i = 0;
+    while (i <= 10) {
+        print(i);
+        i = i + 1;
+    }
+}
+
+fn print_test () -> void {
+    print("Hello, world!");
+    //print(x);
+}
+
+global int x = 5;
+
+fn if_elif_else_test () -> void {
+    print(x);
+    if (x == 5) {
+        print("x is 5");
+    } elif (x == 6) {
+        print("x is 6");
+    } else {
+        print("x is not 5 or 6");
+    }
+    int i = 0;
+    int x = 5;
+    while (i < 3) {
+        print(x);
+        int x = 6;
+        print(x);
+        i++;
+    }
+}
+
+
+fn main () -> int {
+    print_test();
+    // while_test();
+    if_elif_else_test();
+}

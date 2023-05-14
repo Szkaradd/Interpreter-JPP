@@ -1,0 +1,7 @@
+fn main() -> int {
+    print("Hello, world1!");
+}
+
+fn main() -> int {
+    print("Hello, world2!");
+}

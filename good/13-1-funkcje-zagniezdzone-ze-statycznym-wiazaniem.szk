@@ -1,0 +1,22 @@
+fn fun2() -> void {
+    print("Hello from fun2 global");
+}
+
+fn fun1() -> void {
+    print("Hello from fun1");
+    fn fun2() -> void {
+        print("Hello from fun2");
+        fn fun3() -> void {
+            print("Hello from fun3");
+        }
+        fun3();
+    }
+    fun2();
+
+    // fun3(); // error: fun3 is not defined in this scope
+}
+
+fn main() -> int {
+    fun1();
+    fun2();
+}

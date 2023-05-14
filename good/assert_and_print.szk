@@ -1,0 +1,51 @@
+global int g = 13, h = 14, j;
+global string s = "global string!";
+fn main() -> int {
+    print(1, " ", 2, " ", 3, " ", 4, " ", true);
+    int x = 5 + 3;
+    print(x);
+    bool t = true;
+    bool f = !t;
+    string s = "string!";
+    string s1 = "string!";
+    print(s == s1);
+    // true
+    print(x);
+    // 8
+    print(t);
+    // true
+    print(f);
+    // false
+    print(s);
+    // string!
+    print(3 + 8 * 2);
+    // 19
+    print(t || f);
+    // true
+    print(t && f);
+    // false
+    x++;
+    print(x);
+    // 9
+    print(x == 9);
+    // true
+    // assert (x == 8);
+    x = 9;
+    if (x == 8) {
+        print("x is 8!");
+        return 0;
+    }
+    elif (x == 9) {
+        print("x is 9!");
+        return 1;
+    }
+    elif (x == 10) {
+        print("x is 10!");
+        return 2;
+    }
+    else {
+        print("x is not 8, 9, or 10!");
+        return 3;
+    }
+    print ("this should not print!");
+}

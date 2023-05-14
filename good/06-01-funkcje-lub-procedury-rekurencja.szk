@@ -1,0 +1,20 @@
+fn foo() -> string {
+    return "abcde";
+}
+
+fn bar(string str) -> void {
+    print(1);
+    print(str);
+}
+
+fn baz(int a, int b) -> int {
+    return a + b;
+}
+
+fn main() -> int {
+    string s = foo();
+    print(s);
+    bar("hello");
+    int y = baz(1, 2);
+    print(y);
+}

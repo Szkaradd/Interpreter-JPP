@@ -1,0 +1,15 @@
+global int x = 2;
+fn funkcja1(int x) -> int {
+    return x + 3;
+}
+fn funkcja2(int z) -> int {
+    return x + z;
+}
+
+fn main() -> int {
+    int y = 7;
+    int res = funkcja(y);
+    // res = 10
+    res = funkcja2(y);
+    // res = 9
+}
