@@ -4,7 +4,7 @@ import Control.Monad.Except
 import Control.Monad.Reader
 import Control.Monad.State
 import Data.Map (Map)
-import Data.Map qualified as Map
+import qualified Data.Map as Map
 import Szkarson.Abs
 import Types
 
