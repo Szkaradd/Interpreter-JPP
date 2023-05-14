@@ -3,7 +3,7 @@ module TypeChecker.Program where
 import Control.Monad.Except
 import Control.Monad.Reader
 import Data.Map (Map)
-import Data.Map qualified as Map
+import qualified Data.Map as Map
 import Szkarson.Abs
 import TypeChecker.StatementsAndExpressions (checkBlock, checkStmt, checkStmts, initTypes, prepareArgs, processItems, toTType)
 import Types

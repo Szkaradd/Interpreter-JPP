@@ -3,7 +3,7 @@ module TypeChecker.StatementsAndExpressions where
 import Control.Monad.Except
 import Control.Monad.Reader
 import Data.Map (Map)
-import Data.Map qualified as Map
+import qualified Data.Map as Map
 import Szkarson.Abs
 import Types
 import Utils
