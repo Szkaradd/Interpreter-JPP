@@ -60,6 +60,8 @@ W środowisku trzymamy informację o typach wszystkich obecnie widocznych zmienn
 
 Typechecker uruchamiany jest za pomocą funkcji  typecheck z pliku TypeChecker/Program.hs
 
+Niezrealizowane funkcjonalności to krotki, tablice, oraz break i continue, chętnie dodam je jako poprawki do interpretera.
+
 ##### Program:
 
 Program jest listą definicji funkcji oraz zmiennych globalnych. W programie musi być funkcja `main`. 
