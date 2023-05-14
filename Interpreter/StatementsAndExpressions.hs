@@ -174,7 +174,7 @@ evalExpr (EApp _ ident exprs) = do
       (env'', retVal) <- local (const env') $ evalBlock block
       case retVal of
         VReturn val -> return val
-        VBlank -> return $ defaultValue retType
+        VNothing -> return $ defaultValue retType
 evalExpr (EBuildInFun pos varIdent funIdent exprs) = do
   execBuildInFunc pos varIdent funIdent exprs
 evalExpr (EString _ str) = return $ VString str
@@ -265,12 +265,12 @@ execElif (ElIf _ expr block) = do
     VBool True -> do
       (_, retVal) <- evalBlock block
       return (env, retVal, True)
-    VBool False -> return (env, VBlank, False)
+    VBool False -> return (env, VNothing, False)
 
 execElifs :: [ElseIf] -> IM (Env, ReturnValue, Bool)
 execElifs [] = do
   env <- ask
-  return (env, VBlank, False)
+  return (env, VNothing, False)
 execElifs (x : xs) = do
   env <- ask
   (env', val, bool) <- execElif x
@@ -280,12 +280,12 @@ evalDecl :: Decl -> IM (Env, ReturnValue)
 evalDecl (DDecl _ t items) = do
   vals <- processItems t items
   env <- initVars vals
-  return (env, VBlank)
+  return (env, VNothing)
 evalDecl (FnDecl _ ident args retType block) = do
   env <- ask
   let funcEnv = _funcEnv env
   let funcEnv' = Map.insert ident (args, block, env, retType) funcEnv
-  return (env {_funcEnv = funcEnv'}, VBlank)
+  return (env {_funcEnv = funcEnv'}, VNothing)
 
 evalBlock :: Block -> IM (Env, ReturnValue)
 evalBlock (BBlock _ stmts) = execStmts stmts
@@ -293,45 +293,45 @@ evalBlock (BBlock _ stmts) = execStmts stmts
 execStmts :: [Stmt] -> IM (Env, ReturnValue)
 execStmts [] = do
   env <- ask
-  return (env, VBlank)
+  return (env, VNothing)
 execStmts (x : xs) = do
   (env, val) <- execStmt x
   case val of
     VReturn v -> return (env, VReturn v)
-    VBlank -> local (const env) $ execStmts xs
+    VNothing -> local (const env) $ execStmts xs
 
 execStmt :: Stmt -> IM (Env, ReturnValue)
 execStmt (Empty _) = do
   env <- ask
-  return (env, VBlank)
+  return (env, VNothing)
 execStmt (BStmt _ block) = evalBlock block
 execStmt (DStmt _ decl) = evalDecl decl
 execStmt (Ass _ ident expr) = do
   val <- evalExpr expr
   env <- assignVar ident val
-  return (env, VBlank)
+  return (env, VNothing)
 execStmt (Incr _ ident) = do
   val <- readVarValue ident
   val' <- case val of
     VInt v -> return $ VInt (v + 1)
   env <- assignVar ident val'
-  return (env, VBlank)
+  return (env, VNothing)
 execStmt (Decr _ ident) = do
   val <- readVarValue ident
   val' <- case val of
     VInt v -> return $ VInt (v - 1)
   env <- assignVar ident val'
-  return (env, VBlank)
+  return (env, VNothing)
 execStmt (Print _ exprs) = do
   env <- ask
   vals <- evalExprs exprs
   printVals vals
-  return (env, VBlank)
+  return (env, VNothing)
 execStmt (Assert pos expr) = do
   val <- evalExpr expr
   env <- ask
   case val of
-    VBool True -> return (env, VBlank)
+    VBool True -> return (env, VNothing)
     VBool False -> throwError $ "Assertion failed at: " ++ showPos pos
 execStmt (Ret _ expr) = do
   val <- evalExpr expr
@@ -350,7 +350,7 @@ execStmt (SIf _ expr block elifs) = do
     VBool False -> case elifs of
       [] -> do
         env <- ask
-        return (env, VBlank)
+        return (env, VNothing)
       (x : xs) -> do
         (env', val', bool) <- execElifs elifs
         return (env, val')
@@ -374,11 +374,11 @@ execStmt (While pos expr block) = do
       (env', val') <- evalBlock block
       case val' of
         VReturn v -> return (env, VReturn v)
-        VBlank -> do 
+        VNothing -> do 
           (env'', val'') <- local (const env) $ execStmt (While pos expr block)
           return (env, val'')
-    VBool False -> return (env, VBlank)
+    VBool False -> return (env, VNothing)
 execStmt (SExp _ expr) = do
   val <- evalExpr expr
   env <- ask
-  return (env, VBlank)
+  return (env, VNothing)

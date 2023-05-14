@@ -15,7 +15,7 @@ type Pos = BNFC'Position
 
 ---------------------- Interpreter types ----------------------
 
-data ReturnValue = VReturn Value | VBlank
+data ReturnValue = VReturn Value | VNothing
   deriving (Show, Eq)
 
 data Value

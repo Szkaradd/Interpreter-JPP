@@ -38,7 +38,7 @@ execProgram (Program _ topDefs) = do
         VReturn value -> do
           liftIO $ putStrLn ("Program returned " ++ show value)
           return ()
-        VBlank -> return ()
+        VNothing -> return ()
 
 interpret :: Prog -> IO (Either String ())
 interpret p = do
