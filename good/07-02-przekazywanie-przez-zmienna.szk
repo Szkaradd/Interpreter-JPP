@@ -1,0 +1,14 @@
+fn edit_str(string s) -> void {
+    s.setCharAt(0, "Y");
+    s = s.append("w");
+}
+
+fn main() -> int {
+    string s = "hello";
+    edit_str(s);
+    print(s);
+    // hello
+    edit_str(&s);
+    print(s);
+    // Yellow
+}
