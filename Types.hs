@@ -34,12 +34,6 @@ instance Show Value where
   show (VString str) = str
   show VVoid = "void"
 
-
-defaultValue :: Type -> Value
-defaultValue (TInt _) = VInt 0
-defaultValue (TBool _) = VBool False
-defaultValue (TStr _) = VString ""
-
 type Func = ([Arg], Block, Env, Type)
 
 data Env = Env
@@ -67,7 +61,7 @@ instance Show TType where
   show (RefT t) = show t ++ "*"
 
 data TypeEnv = TypeEnv
-  { _typeEnv :: Map Ident TType,
+  { _typeVarEnv :: Map Ident TType,
     _typeFuncEnv :: Map Ident ([Arg], TType),
     _in_func :: TType 
   }

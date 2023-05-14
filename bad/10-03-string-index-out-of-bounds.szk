@@ -1,0 +1,4 @@
+fn main() -> int {
+    string s = "abc";
+    string substr = s.substr(5,7);
+}

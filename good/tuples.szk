@@ -1,6 +1,0 @@
-fn main() -> int {
-    tuple<int,bool,string> tup1 = <|1,true,"abc"|>;
-    tuple<int, tuple<int,bool>> tup2 = <|1,<|3,false|>|>;
-    <|int i,bool b, string s|> = tup1;
-    // i = 1 ; b = true ; s = "abc"
-}

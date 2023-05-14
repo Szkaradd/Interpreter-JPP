@@ -8,7 +8,7 @@ fn funkcja2(int z) -> int {
 
 fn main() -> int {
     int y = 7;
-    int res = funkcja(y);
+    int res = funkcja1(y);
     // res = 10
     res = funkcja2(y);
     // res = 9

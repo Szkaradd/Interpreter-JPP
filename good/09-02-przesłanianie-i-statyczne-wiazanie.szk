@@ -1,0 +1,13 @@
+global int x = 0;
+fn static_binding_example(int x) -> int {
+    print(x);
+    fn x() -> string {
+        return "hello";
+    }
+    print(x());
+}
+
+fn main() -> int {
+    print(x);
+    static_binding_example(2);
+}

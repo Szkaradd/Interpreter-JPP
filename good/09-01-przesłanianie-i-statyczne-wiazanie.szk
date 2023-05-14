@@ -10,12 +10,12 @@ fn example2() -> void {
 
 fn main () -> int {
     print(x);
-    // should print 5
+    // 5
     string x = "str";
     example(10);
-    // should print 10
+    // 10
     example2();
-    // should print 5
+    // 5
     print(x);
-    // should print str
+    // str
 }

@@ -5,7 +5,7 @@ import Control.Monad.Reader
 import Control.Monad.State
 import Data.Map (Map)
 import qualified Data.Map as Map
-import Interpreter.StatementsAndExpressions (evalBlock, execStmt, execStmts, processItems)
+import Interpreter.StatementsAndExpressions (evalBlock, execStmt, execStmts, processItems, initVars)
 import Szkarson.Abs
 import Types
 import Utils

@@ -1,0 +1,7 @@
+fn main() -> int {
+    int x = 0;
+    if (true) {
+        int y = 1;
+    }
+    print(y);
+}

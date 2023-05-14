@@ -1,9 +1,0 @@
-fn siema() -> int {
-    print(3);
-    return 2 + 3;
-}
-
-fn main() -> int {
-    int x = siema();
-    print(x);
-}

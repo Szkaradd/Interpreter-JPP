@@ -1,8 +1,11 @@
 fn main () -> int {
     int i = 1, j = 2, k;
     print(i, " ", j, " ", k);
+    // 1 2 0
     string s = "hello" ;
     print(s);
+    // hello
     bool b = true;
     print(b);
+    // true
 }

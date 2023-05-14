@@ -1,0 +1,5 @@
+fn main() -> int {
+    string s = "abc";
+    s.setCharAt(1, "dd"); // we can't set a char to a string longer than 1 char
+    print(s);
+}

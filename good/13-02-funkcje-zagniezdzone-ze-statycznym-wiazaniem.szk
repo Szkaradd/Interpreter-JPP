@@ -9,5 +9,8 @@ fn funkcja1(int x) -> int {
   // returned value is initial value of x + 16
 }
 
-int res = funkcja1(1);
-// res = 17
+fn main () -> int {
+  int res = funkcja1(1);
+  print(res);
+  // res = 17
+}

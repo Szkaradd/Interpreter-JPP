@@ -1,0 +1,4 @@
+fn main() -> int {
+    string s = "hello";
+    print(s)
+}

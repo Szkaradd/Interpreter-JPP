@@ -26,6 +26,21 @@ readVarValue ident = do
   loc <- readFromEnv ident
   readFromStore loc
 
+initVar :: Ident -> Value -> IM Env
+initVar ident val = do
+  env <- ask
+  store <- get
+  let loc = _next store
+  let env' = Env (Map.insert ident loc (_varEnv env)) (_funcEnv env)
+  modify (\s -> s {_next = loc + 1, _store = Map.insert loc val (_store s)})
+  return env'
+
+initVars :: [(Ident, Value)] -> IM Env
+initVars [] = ask
+initVars ((ident, val) : xs) = do
+  env <- initVar ident val
+  local (const env) $ initVars xs
+
 assignVar :: Ident -> Value -> IM Env
 assignVar ident val = do
   env <- ask
@@ -89,7 +104,7 @@ strSubstr pos ident exprs = do
   when
     (index2' < 0 || index2' >= length str)
     (throwError $ "Index " ++ show index2' ++ " out of bounds at: " ++ showPos pos)
-  return $ VString (take (index2' - index1') (drop index1' str))
+  return $ VString (take (index2' - index1' + 1) (drop index1' str))
 
 strAppend :: Pos -> Ident -> [Expr] -> IM Value
 strAppend pos ident exprs = do
@@ -257,7 +272,8 @@ execElifs [] = do
   env <- ask
   return (env, VBlank, False)
 execElifs (x : xs) = do
-  (env, val, bool) <- execElif x
+  env <- ask
+  (env', val, bool) <- execElif x
   if bool then return (env, val, bool) else execElifs xs
 
 evalDecl :: Decl -> IM (Env, ReturnValue)
@@ -325,25 +341,30 @@ execStmt (VRet _) = do
   env <- ask
   return (env, VReturn VVoid)
 execStmt (SIf _ expr block elifs) = do
+  env <- ask
   val <- evalExpr expr
   case val of
-    VBool True -> evalBlock block
+    VBool True -> do
+      (env', val') <- evalBlock block
+      return (env, val')
     VBool False -> case elifs of
       [] -> do
         env <- ask
         return (env, VBlank)
       (x : xs) -> do
-        (env, val', bool) <- execElifs elifs
+        (env', val', bool) <- execElifs elifs
         return (env, val')
 execStmt (SIfElse _ expr block elifs elseBlock) = do
   env <- ask
   val <- evalExpr expr
   case val of
-    VBool True -> evalBlock block
+    VBool True -> do 
+      (env', val') <- evalBlock block
+      return (env, val')
     VBool False -> do
       (env', val', bool) <- execElifs elifs
       if bool
-        then return (env', val')
+        then return (env, val')
         else evalBlock elseBlock
 execStmt (While pos expr block) = do
   env <- ask
@@ -352,8 +373,10 @@ execStmt (While pos expr block) = do
     VBool True -> do
       (env', val') <- evalBlock block
       case val' of
-        VReturn v -> return (env', VReturn v)
-        VBlank -> local (const env) $ execStmt (While pos expr block)
+        VReturn v -> return (env, VReturn v)
+        VBlank -> do 
+          (env'', val'') <- local (const env) $ execStmt (While pos expr block)
+          return (env, val'')
     VBool False -> return (env, VBlank)
 execStmt (SExp _ expr) = do
   val <- evalExpr expr

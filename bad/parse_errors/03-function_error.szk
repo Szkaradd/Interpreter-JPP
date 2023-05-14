@@ -1,0 +1,9 @@
+fn fun1(int x) -> int {
+    return x + 1;
+}
+
+fn main() -> int {
+    fun1(fn fun2(int x) -> int {
+        return x + 1;
+    });
+}

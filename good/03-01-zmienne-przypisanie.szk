@@ -8,7 +8,6 @@ fn main () -> int {
     x = y;
     print(x);
     // 6
-
     string s = "hello";
     s = s.append(" world!");
     print(s);

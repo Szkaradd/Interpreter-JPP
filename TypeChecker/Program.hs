@@ -5,7 +5,7 @@ import Control.Monad.Reader
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Szkarson.Abs
-import TypeChecker.StatementsAndExpressions (checkBlock, checkStmt, checkStmts, initTypes, prepareArgs, processItems, toTType)
+import TypeChecker.StatementsAndExpressions (checkBlock, initTypes, prepareArgs, processItems, toTType)
 import Types
 import Utils
 
@@ -23,7 +23,7 @@ loadTopDef (FnDef pos ident args retType block) = do
   checkForMainRedefinition pos ident
   let funcTypeEnv = _typeFuncEnv env
   let funcTypeEnv' = Map.insert ident (args, toTType retType) funcTypeEnv
-  let typeEnv = _typeEnv env
+  let typeEnv = _typeVarEnv env
   let env' = env {_typeFuncEnv = funcTypeEnv'}
   env'' <- local (const env') $ prepareArgs args
   let env''' = env'' {_in_func = toTType retType}
@@ -44,9 +44,11 @@ checkProgram (Program _ topDefs) = do
   env <- loadTopDefs topDefs
   case Map.lookup (Ident "main") (_typeFuncEnv env) of
     Nothing -> throwError "No main function"
-    Just (_, retType) -> do
+    Just (args, retType) -> do
       if retType == IntT
-        then return ()
+        then if null args
+          then return ()
+          else throwError "Main function must have no arguments"
         else throwError "Main function must be of type int"
 
 typecheck :: Prog -> IO String
